@@ -46,3 +46,9 @@ class Magazine():
 
     def __repr__(self):
         return f"Magazine('{self.name}', {self.id}, '{self.category}')"
+    
+    def articles(self):
+        return self.articles
+
+    def contributors(self):
+        return self.authors

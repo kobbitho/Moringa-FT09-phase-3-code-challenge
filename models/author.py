@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
-
+from sqlalchemy.orm import relationship, backref
 class Author():
     __tablename__ = 'authors'
 
@@ -34,4 +34,11 @@ class Author():
 
 
     def __repr__(self):
-        return f"Author('{self.name}', '{self.email}')"
+        return f"Author('{self.name}`)"
+    
+    def articles(self):
+        return self.articles
+    
+    def magazines(self):
+        return self.magazines
+    

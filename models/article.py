@@ -51,5 +51,31 @@ class Article():
 
     def __repr__(self):
         return f"Article('{self.title}', {self.author.id}, {self.magazine.id})"
+    
+    def author(self):
+        return self.author
 
+
+    def magazine(self):
+        return self.magazine
+
+
+    def articles(self):
+        return self.magazine.articles
+
+
+    def magazines(self):
+        return self.author.magazines
+
+
+    def article_titles(self):
+       articles = self.magazine.articles
+       titles = [article.title for article in articles]
+       return titles if articles else None
+
+
+    def contributing_authors(self):
+        authors = self.magazine.authors
+        contributors = [author for author in authors if len(author.articles) > 2]
+        return contributors if authors else None
     
