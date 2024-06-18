@@ -1,26 +1,11 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship, backref
-class Author():
-    __tablename__ = 'authors'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    email = Column(String, nullable=False)
-
+class Author:
     def __init__(self, id, name):
-        self.id = id
-        self.name = name
-        
+        self._id = id
+        self._name = name
 
     @property
     def id(self):
         return self._id
-
-    @id.setter
-    def id(self, value):
-        if not isinstance(value, int):
-            raise ValueError("ID must be an integer")
-        self._id = value
 
     @property
     def name(self):
@@ -28,17 +13,41 @@ class Author():
 
     @name.setter
     def name(self, value):
-        if not isinstance(value, str) or len(value) < 2 or len(value) > 16:
-            raise ValueError("Name must be a string between 2 and 16 characters")
+        if not isinstance(value, str):
+            raise TypeError("Name must be a string.")
+        if len(value) == 0:
+            raise ValueError("Name must not be empty.")
+        if hasattr(self, '_name'):
+            raise AttributeError("Name cannot be changed after instantiation.")
         self._name = value
 
+    def create_author(self, cursor):
+         # inserting a new author 
+        cursor.execute("INSERT INTO authors (name) VALUES (?)", (self._name,))
+        self._id = cursor.lastrowid
 
-    def __repr__(self):
-        return f"Author('{self.name}`)"
-    
-    def articles(self):
-        return self.articles
-    
-    def magazines(self):
-        return self.magazines
-    
+    @classmethod
+      # gets all authors
+    def get_all_authors(cls, cursor):
+        cursor.execute("SELECT * FROM authors")
+        authors_data = cursor.fetchall()
+        return [cls(id=row[0], name=row[1]) for row in authors_data]
+
+    def articles(self, cursor):
+        # gets all articles associated with a specific author
+        cursor.execute("SELECT * FROM articles WHERE author_id = ?", (self._id,))
+        articles_data = cursor.fetchall()
+        return articles_data
+
+    def magazines(self, cursor):
+         # gets all magazines associated with a specific author
+        cursor.execute("""
+            SELECT magazines.*
+            FROM magazines
+            JOIN articles ON magazines.id = articles.magazine_id
+            WHERE articles.author_id = ?
+        """, (self._id,))
+        magazines_data = cursor.fetchall()
+        return magazines_data
+
+   

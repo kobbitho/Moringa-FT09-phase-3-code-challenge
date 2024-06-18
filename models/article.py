@@ -1,30 +1,14 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship, backref
-
-class Article():
-    __tablename__ = 'articles'
-
-    id = Column(Integer, primary_key=True)
-    title = Column(String, nullable=False)
-    content = Column(String, nullable=False)
-    author_id = Column(Integer, ForeignKey('authors.id'))
-    magazine_id = Column(Integer, ForeignKey('magazines.id'))
-    magazine = relationship("Magazine", backref=backref('articles', order_by=id))
-    
-    def __init__(self, author, magazine, title):
-        self.author = author
-        self.magazine = magazine
+class Article:
+    def __init__(self, id, title, content, author_id, magazine_id):
+        self._id = id
         self.title = title
+        self.content = content
+        self._author_id = author_id
+        self._magazine_id = magazine_id
 
     @property
     def id(self):
         return self._id
-
-    @id.setter
-    def id(self, value):
-        if not isinstance(value, int):
-            raise ValueError("ID must be an integer")
-        self._id = value
 
     @property
     def title(self):
@@ -32,50 +16,35 @@ class Article():
 
     @title.setter
     def title(self, value):
-        """
-        Set the title of the article.
-
-        Parameters:
-        value (str): The new title of the article.
-
-        Raises:
-        ValueError: If the title is not a string or its length is less than 5 or more than 50 characters.
-
-        Returns:
-        None
-        """
-        if not isinstance(value, str) or len(value) < 5 or len(value) > 50:
+        if isinstance(value, str) and 5 <= len(value) <= 50:
+            self._title = value
+        else:
             raise ValueError("Title must be a string between 5 and 50 characters")
-        self._title = value
+
+    @classmethod
+       # inserts a new article 
+    def create_article(cls, cursor, title, content, author_id, magazine_id):
+        cursor.execute("INSERT INTO articles (title, content, author_id, magazine_id) VALUES (?, ?, ?, ?)", (title, content, author_id, magazine_id))
+        article_id = cursor.lastrowid
+        return cls(article_id, title, content, author_id, magazine_id)
+
+    @classmethod
+        # gets all article titles
+    def get_title(cls, cursor):
+        cursor.execute("SELECT title FROM articles")
+        titles = cursor.fetchall()
+        return [title[0] for title in titles] if titles else None
 
 
-    def __repr__(self):
-        return f"Article('{self.title}', {self.author.id}, {self.magazine.id})"
-    
-    def author(self):
-        return self.author
+    def get_author(self, cursor):
+        # gets the name of the author associated with the article 
+        cursor.execute("SELECT name FROM authors WHERE id = ?", (self._author_id,))
+        author_name = cursor.fetchone()
+        return author_name[0] if author_name else None
 
 
-    def magazine(self):
-        return self.magazine
-
-
-    def articles(self):
-        return self.magazine.articles
-
-
-    def magazines(self):
-        return self.author.magazines
-
-
-    def article_titles(self):
-       articles = self.magazine.articles
-       titles = [article.title for article in articles]
-       return titles if articles else None
-
-
-    def contributing_authors(self):
-        authors = self.magazine.authors
-        contributors = [author for author in authors if len(author.articles) > 2]
-        return contributors if authors else None
-    
+    def get_magazine(self, cursor):
+        # gets  the name of the magazine associated with the article
+        cursor.execute("SELECT name FROM magazines WHERE id = ?", (self._magazine_id,))
+        magazine_name = cursor.fetchone()
+        return magazine_name[0] if magazine_name else None

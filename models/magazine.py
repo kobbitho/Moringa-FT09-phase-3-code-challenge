@@ -1,18 +1,11 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship, backref
-class Magazine():
-    __tablename__ = 'magazines'
+from database.connection import get_db_connection
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    category = Column(String, nullable=False)
-    articles = relationship("Article", backref=backref('magazines', order_by=id))
-    authors = relationship("Author", secondary='magazine_authors', backref=backref('magazines', order_by=id))
-    
+class Magazine:
     def __init__(self, id, name, category):
-        self.id = id
-        self.name = name
-        self.category = category
+        self._id = id
+        self._name = name
+        self._category = category
+        self.save_to_db()
 
     @property
     def id(self):
@@ -21,7 +14,7 @@ class Magazine():
     @id.setter
     def id(self, value):
         if not isinstance(value, int):
-            raise ValueError("ID must be an integer")
+            raise ValueError("id must be of type int")
         self._id = value
 
     @property
@@ -30,8 +23,10 @@ class Magazine():
 
     @name.setter
     def name(self, value):
-        if not isinstance(value, str) or len(value) < 2 or len(value) > 16:
-            raise ValueError("Name must be a string between 2 and 16 characters")
+        if not isinstance(value, str):
+            raise ValueError("name must be of type str")
+        if len(value) < 2 or len(value) > 16:
+            raise ValueError("name must be between 2 and 16 characters")
         self._name = value
 
     @property
@@ -40,15 +35,27 @@ class Magazine():
 
     @category.setter
     def category(self, value):
-        if not isinstance(value, str) or len(value) == 0:
-            raise ValueError("Category must be a non-empty string")
+        if not isinstance(value, str):
+            raise ValueError("category must be of type str")
+        if len(value) == 0:
+            raise ValueError("category must be longer than 0 characters")
         self._category = value
 
-    def __repr__(self):
-        return f"Magazine('{self.name}', {self.id}, '{self.category}')"
-    
-    def articles(self):
-        return self.articles
+    def save_to_db(self):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO magazines (name, category) VALUES (?, ?)', (self._name, self._category))
+        self._id = cursor.lastrowid
+        conn.commit()
+        conn.close()
 
-    def contributors(self):
-        return self.authors
+    @staticmethod
+    def get_by_id(id):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM magazines WHERE id = ?', (id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return Magazine(row['id'], row['name'], row['category'])
+        return None
